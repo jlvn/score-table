@@ -16,7 +16,7 @@ class Player {
     }
 
     clearRoundScores() {
-        this.roundScores = this.roundScores.map(roundScore => undefined)
+        this.roundScores = this.roundScores.map(() => undefined)
     }
 
     /**
@@ -127,7 +127,7 @@ const convertGameToTableData = (game) => {
         headerRow.push(game.players[i].name)
         for (let j = 0; j < game.players[i].roundScores.length; j++) {
             if (!bodyRows[j]) {
-                bodyRows[j] = [`Round ${j + 1}`]
+                bodyRows[j] = [`R ${j + 1}`]
             }
             bodyRows[j][i + 1] = game.players[i].roundScores[j] === undefined ? '' : game.players[i].roundScores[j].toString()
         }

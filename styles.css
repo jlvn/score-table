@@ -6,7 +6,7 @@ body {
 }
 
 tr:nth-child(odd) {
-    background-color: #222;
+    background-color: #2d2d2d;
 }
 
 input {
@@ -15,9 +15,16 @@ input {
     color: #cccccc;
 }
 
+thead {
+    position: sticky;
+    top: -1px;
+    background-color: #222222;
+    box-shadow: 0 1px 0 -1px #3e3e3e;
+}
+
 thead > tr,
 tfoot > tr {
-    background-color: transparent !important;
+    background-color: #222222 !important;
 }
 
 #controls {
@@ -43,6 +50,8 @@ td {
 
 td:first-child {
     font-weight: bold;
+    width: 52px;
+    background-color: #222222;
 }
 
 button {
