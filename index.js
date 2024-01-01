@@ -225,7 +225,7 @@ const game = new Game(defaultRoundCount, defaultPlayerCount)
 
 /** @type {HTMLTableElement} */
 const scoresTable = document.getElementById('scores')
-const resetButton = document.getElementById('reset')
+const clearScoresButton = document.getElementById('clearScores')
 const roundCountInput = document.getElementById('roundCount')
 const playerCountInput = document.getElementById('playerCount')
 
@@ -250,7 +250,7 @@ playerCountInput.onchange = (e) => {
 
 render()
 
-resetButton.onclick = () => {
+clearScoresButton.onclick = () => {
     game.clearPlayerScores()
     render()
 }
