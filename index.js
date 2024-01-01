@@ -204,6 +204,11 @@ const renderTableHeaderWithHeaderRowData = (tableHeaderElement, headerRowData) =
             cell.oninput = (e) => {
                 game.players[i - 1].name = e.target.innerText
             }
+            cell.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault()
+                }
+            }
         }
     }
 }
