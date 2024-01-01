@@ -1,70 +1,135 @@
-/** @typedef {{name: string, roundScores: (number | undefined)[] }} Player */
-
 /** @typedef {{ bodyRows: string[][], footerRow: string[], headerRow: string[] }} TableData */
 
-/**
- * @param {number} roundCount
- * @param {number} playerCount
- * @param {Player[]} players
- * @param {string[]} names
- * @return {Player[]}
- */
-const modifyPlayers = (playerCount, roundCount, players = [], names = []) => {
-    for (let i = 0; i < playerCount; i++) {
-        if (!players[i]) {
-            players[i] = {name: names[i] ? names[i] : `player ${i + 1}`, roundScores: []}
+class Player {
+    /** @type {string} */
+    name
+    /** @type {(number | undefined)[]} */
+    roundScores
+
+    /**
+     * @param {string} name
+     * @param {(number | undefined)[]} roundScores
+     */
+    constructor(name, roundScores = []) {
+        this.name = name
+        this.roundScores = roundScores
+    }
+
+    clearRoundScores() {
+        this.roundScores = this.roundScores.map(roundScore => undefined)
+    }
+
+    /**
+     * @return {number}
+     */
+    get totalScore() {
+        return this.roundScores.reduce((previous, current) => previous + (current ?? 0), 0)
+    }
+}
+
+class Game {
+    /** @type {Player[]} */
+    #players
+
+    /** @type {number} */
+    #roundCount
+
+    /** @type {number} */
+    #playerCount
+
+    /**
+     * @param {number} roundCount
+     * @param {number} playerCount
+     * @param {Player[] | undefined} players
+     */
+    constructor(roundCount, playerCount, players = []) {
+        this.#roundCount = roundCount
+        this.#playerCount = playerCount
+        this.#players = this.#modifyPlayers(playerCount, roundCount, players)
+    }
+
+    get players() {
+        return this.#players
+    }
+
+    get roundCount() {
+        return this.#roundCount
+    }
+
+    get playerCount() {
+        return this.#playerCount
+    }
+
+    /**
+     * @param {number} newRoundCount
+     * @return
+     */
+    set roundCount(newRoundCount) {
+        this.#roundCount = newRoundCount
+        this.#players = this.#modifyPlayers(this.#playerCount, this.#roundCount, this.#players)
+    }
+
+    /**
+     * @param {number} newPlayerCount
+     */
+    set playerCount(newPlayerCount) {
+        this.#playerCount = newPlayerCount
+        this.#players = this.#modifyPlayers(this.#playerCount, this.#roundCount, this.#players)
+    }
+
+    /**
+     * @return {void}
+     */
+    clearPlayerScores() {
+        for (const player of this.#players) {
+            player.clearRoundScores()
         }
-        for (let j = 0; j < roundCount; j++) {
-            if (!players[i].roundScores[j]) {
-                players[i].roundScores[j] = undefined;
+    }
+
+    /**
+     * @param {number} roundCount
+     * @param {number} playerCount
+     * @param {Player[]} players
+     * @return {Player[]}
+     */
+    #modifyPlayers(playerCount, roundCount, players = []) {
+        for (let i = 0; i < playerCount; i++) {
+            if (!players[i]) {
+                players[i] = new Player(`player ${i + 1}`)
+            }
+            for (let j = 0; j < roundCount; j++) {
+                if (!players[i].roundScores[j]) {
+                    players[i].roundScores[j] = undefined;
+                }
+            }
+            if (roundCount < players[i].roundScores.length) {
+                players[i].roundScores.splice(roundCount - players[i].roundScores.length)
             }
         }
-        if (roundCount < players[i].roundScores.length) {
-            players[i].roundScores.splice(roundCount - players[i].roundScores.length)
+        if (playerCount < players.length) {
+            players.splice(playerCount - players.length)
         }
+        return players
     }
-    if (playerCount < players.length) {
-        players.splice(playerCount - players.length)
-    }
-    return players
 }
 
 /**
- * @param {Player[]} players
- * @return {number[]}
- */
-const calculateRoundScoreTotals = (players) => {
-    return players.reduce((totals, player) => {
-        totals.push(calculateTotalRoundScoreFor(player))
-        return totals
-    }, [])
-}
-
-/**
- * @param {Player} player
- * @return {number}
- */
-const calculateTotalRoundScoreFor = (player) =>
-    player.roundScores.reduce((previous, current) => previous + (current ?? 0), 0)
-
-/**
- * @param {Player[]} players
- * @param {function(Player[]): number[]} calculateTotals
+ * @param {Game} game
  * @return {TableData}
  */
-const convertPlayersToTableData = (players, calculateTotals) => {
+const convertGameToTableData = (game) => {
     const footerRow = ['Total']
-    footerRow.push(...calculateTotals(players).map(total => total.toString()))
+    footerRow.push(...game.players.map(player => player.totalScore.toString()))
 
     const headerRow = ['Player']
     const bodyRows = []
-    for (let i = 0; i < players.length; i++) {
-        headerRow.push(players[i].name)
-        for (let j = 0; j < players[i].roundScores.length; j++) {
+    for (let i = 0; i < game.players.length; i++) {
+        headerRow.push(game.players[i].name)
+        for (let j = 0; j < game.players[i].roundScores.length; j++) {
             if (!bodyRows[j]) {
                 bodyRows[j] = [`Round ${j + 1}`]
             }
-            bodyRows[j][i + 1] = players[i].roundScores[j] === undefined ? '' : players[i].roundScores[j].toString()
+            bodyRows[j][i + 1] = game.players[i].roundScores[j] === undefined ? '' : game.players[i].roundScores[j].toString()
         }
     }
 
@@ -108,8 +173,8 @@ const renderTableBodyWithBodyRowsData = (tableBodyElement, bodyRowsData) => {
                     if (isNaN(score)) {
                         score = 0
                     }
-                    players[j - 1].roundScores[i] = score
-                    renderTableFooterWithFooterRowData(scoresTableFooter, convertPlayersToTableData(players, calculateRoundScoreTotals).footerRow)
+                    game.players[j - 1].roundScores[i] = score
+                    renderTableFooterWithFooterRowData(scoresTableFooter, convertGameToTableData(game).footerRow)
                 }
             }
         }
@@ -130,7 +195,7 @@ const renderTableHeaderWithHeaderRowData = (tableHeaderElement, headerRowData) =
         if (i > 0) {
             cell.contentEditable = 'true'
             cell.oninput = (e) => {
-                players[i - 1].name = e.target.innerText
+                game.players[i - 1].name = e.target.innerText
             }
         }
     }
@@ -155,14 +220,12 @@ const renderTableWithTableData = (tableHeaderElement, tableBodyElement, tableFoo
 
 const defaultPlayerCount = 4
 const defaultRoundCount = 7
-let playerCount = defaultPlayerCount
-let roundCount = defaultRoundCount
-/** @type {Player[]} */
-let players = []
+
+const game = new Game(defaultRoundCount, defaultPlayerCount)
 
 /** @type {HTMLTableElement} */
 const scoresTable = document.getElementById('scores')
-const resetButton = document.getElementById('reset')
+const clearScoresButton = document.getElementById('clearScores')
 const roundCountInput = document.getElementById('roundCount')
 const playerCountInput = document.getElementById('playerCount')
 
@@ -170,28 +233,24 @@ const scoresTableHeader = scoresTable.createTHead()
 const scoresTableBody = scoresTable.createTBody()
 const scoresTableFooter = scoresTable.createTFoot()
 
-const resize = () => {
-    players = modifyPlayers(playerCount, roundCount, players)
-    renderTableWithTableData(scoresTableHeader, scoresTableBody, scoresTableFooter, convertPlayersToTableData(players, calculateRoundScoreTotals))
-}
+roundCountInput.value = game.roundCount
+playerCountInput.value = game.playerCount
+
+const render = () => renderTableWithTableData(scoresTableHeader, scoresTableBody, scoresTableFooter, convertGameToTableData(game))
 
 roundCountInput.onchange = (e) => {
-    roundCount = parseInt(e.target.value)
-    resize()
+    game.roundCount = parseInt(e.target.value)
+    render()
 }
 
 playerCountInput.onchange = (e) => {
-    playerCount = parseInt(e.target.value)
-    resize()
+    game.playerCount = parseInt(e.target.value)
+    render()
 }
 
-const reset = () => {
-    roundCountInput.value = defaultRoundCount
-    playerCountInput.value = defaultPlayerCount
-    players = modifyPlayers(defaultPlayerCount, defaultRoundCount, [], players.map(player => player.name))
-    renderTableWithTableData(scoresTableHeader, scoresTableBody, scoresTableFooter, convertPlayersToTableData(players, calculateRoundScoreTotals))
+render()
+
+clearScoresButton.onclick = () => {
+    game.clearPlayerScores()
+    render()
 }
-
-reset()
-
-resetButton.onclick = reset
