@@ -178,6 +178,11 @@ const renderTableBodyWithBodyRowsData = (tableBodyElement, bodyRowsData) => {
                     game.players[j - 1].roundScores[i] = score
                     renderTableFooterWithFooterRowData(scoresTableFooter, convertGameToTableData(game).footerRow)
                 }
+                cell.onkeydown = (e) => {
+                    if (!e.key.match(/^[0-9]/g)) {
+                        e.preventDefault()
+                    }
+                }
             }
         }
     }
