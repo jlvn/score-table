@@ -200,6 +200,8 @@ const renderTableHeaderWithHeaderRowData = (tableHeaderElement, headerRowData) =
         const cell = headerRow.insertCell(i)
         cell.innerText = headerRowData[i]
         if (i > 0) {
+            cell.inputMode = 'email'
+            cell.pattern = '\w'
             cell.contentEditable = 'true'
             cell.oninput = (e) => {
                 game.players[i - 1].name = e.target.innerText
