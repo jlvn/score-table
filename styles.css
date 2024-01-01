@@ -2,6 +2,7 @@ body {
     margin: 0;
     background-color: #282828;
     color: #cccccc;
+    font-family: sans-serif;
 }
 
 tr:nth-child(odd) {
