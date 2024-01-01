@@ -167,6 +167,8 @@ const renderTableBodyWithBodyRowsData = (tableBodyElement, bodyRowsData) => {
             const cell = row.insertCell(j)
             cell.innerText = bodyRowsData[i][j]
             if (j > 0) {
+                cell.inputMode = 'numeric'
+                cell.pattern = '[0-9]*'
                 cell.contentEditable = 'true'
                 cell.oninput = (e) => {
                     let score = parseInt(e.target.innerText)
@@ -175,6 +177,11 @@ const renderTableBodyWithBodyRowsData = (tableBodyElement, bodyRowsData) => {
                     }
                     game.players[j - 1].roundScores[i] = score
                     renderTableFooterWithFooterRowData(scoresTableFooter, convertGameToTableData(game).footerRow)
+                }
+                cell.onkeydown = (e) => {
+                    if (!e.key.match(/^[0-9]/g)) {
+                        e.preventDefault()
+                    }
                 }
             }
         }
@@ -196,6 +203,11 @@ const renderTableHeaderWithHeaderRowData = (tableHeaderElement, headerRowData) =
             cell.contentEditable = 'true'
             cell.oninput = (e) => {
                 game.players[i - 1].name = e.target.innerText
+            }
+            cell.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault()
+                }
             }
         }
     }
