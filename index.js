@@ -167,6 +167,8 @@ const renderTableBodyWithBodyRowsData = (tableBodyElement, bodyRowsData) => {
             const cell = row.insertCell(j)
             cell.innerText = bodyRowsData[i][j]
             if (j > 0) {
+                cell.inputMode = 'numeric'
+                cell.pattern = '[0-9]*'
                 cell.contentEditable = 'true'
                 cell.oninput = (e) => {
                     let score = parseInt(e.target.innerText)
