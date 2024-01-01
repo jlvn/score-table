@@ -1,5 +1,77 @@
 /** @typedef {{ bodyRows: string[][], footerRow: string[], headerRow: string[] }} TableData */
 
+/** @typedef {{ name: string, roundScores: (number | undefined)[] }} PlayerData */
+
+/** @typedef {{ players: PlayerData[] }} GameData */
+
+const gameStorage = {
+    /**
+     * @throws {Error}
+     * @return {GameData}
+     */
+    tryLoad: () => {
+        const item = window.localStorage.getItem('gameData')
+        if (!item) {
+            throw new Error()
+        }
+
+        const maybeGame = JSON.parse(item)
+        if (!maybeGame.players || !Array.isArray(maybeGame.players) || maybeGame.players.length < 1) {
+            throw new Error()
+        }
+
+        for (const maybePlayer of maybeGame.players) {
+            if (!maybePlayer.name ||
+                typeof maybePlayer.name !== typeof '' ||
+                !maybePlayer.roundScores ||
+                !Array.isArray(maybePlayer.roundScores) ||
+                maybePlayer.roundScores.length < 1
+            ) {
+                throw new Error()
+            }
+
+            /** @type {(number | undefined)[]} */
+            const newRoundScores = []
+            for (let roundScore of maybePlayer.roundScores) {
+                if (roundScore !== null &&
+                    typeof roundScore !== typeof 1
+                ) {
+                    throw new Error()
+                }
+                newRoundScores.push(roundScore != null ? roundScore : undefined)
+            }
+            maybePlayer.roundScores = newRoundScores
+        }
+        return maybeGame
+    },
+
+    /**
+     * @param {GameData} gameData
+     */
+    save: (gameData) => {
+        window.localStorage.setItem('gameData', JSON.stringify(gameData))
+    }
+}
+
+/**
+ * @param {Game} game
+ * @return {GameData}
+ */
+const convertGameToGameData = (game) => {
+    return { players: game.players.map(({ name, roundScores }) => ({roundScores, name })) }
+}
+
+/**
+ * @param {GameData} gameData
+ * @return {Game}
+ */
+const convertGameDataToGame = (gameData) => {
+    const players = gameData.players.map(({name, roundScores}) => new Player(name, roundScores))
+    const playerCount = players.length
+    const roundCount = players[0].roundScores.length
+    return new Game(roundCount, playerCount, players)
+}
+
 class Player {
     /** @type {string} */
     name
@@ -176,6 +248,7 @@ const renderTableBodyWithBodyRowsData = (tableBodyElement, bodyRowsData) => {
                         score = 0
                     }
                     game.players[j - 1].roundScores[i] = score
+                    gameStorage.save(convertGameToGameData(game))
                     renderTableFooterWithFooterRowData(scoresTableFooter, convertGameToTableData(game).footerRow)
                 }
                 cell.onkeydown = (e) => {
@@ -205,6 +278,7 @@ const renderTableHeaderWithHeaderRowData = (tableHeaderElement, headerRowData) =
             cell.contentEditable = 'true'
             cell.oninput = (e) => {
                 game.players[i - 1].name = e.target.innerText
+                gameStorage.save(convertGameToGameData(game))
             }
             cell.onkeydown = (e) => {
                 if (e.key === 'Enter') {
@@ -235,7 +309,13 @@ const renderTableWithTableData = (tableHeaderElement, tableBodyElement, tableFoo
 const defaultPlayerCount = 4
 const defaultRoundCount = 7
 
-const game = new Game(defaultRoundCount, defaultPlayerCount)
+let game = new Game(defaultRoundCount, defaultPlayerCount)
+try {
+    const gameData = gameStorage.tryLoad()
+    game = convertGameDataToGame(gameData)
+} catch {
+    // ignored
+}
 
 /** @type {HTMLTableElement} */
 const scoresTable = document.getElementById('scores')
@@ -254,11 +334,13 @@ const render = () => renderTableWithTableData(scoresTableHeader, scoresTableBody
 
 roundCountInput.onchange = (e) => {
     game.roundCount = parseInt(e.target.value)
+    gameStorage.save(convertGameToGameData(game))
     render()
 }
 
 playerCountInput.onchange = (e) => {
     game.playerCount = parseInt(e.target.value)
+    gameStorage.save(convertGameToGameData(game))
     render()
 }
 
@@ -266,5 +348,6 @@ render()
 
 clearScoresButton.onclick = () => {
     game.clearPlayerScores()
+    gameStorage.save(convertGameToGameData(game))
     render()
 }
