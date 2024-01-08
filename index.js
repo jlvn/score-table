@@ -16,14 +16,12 @@ const gameStorage = {
         }
 
         const maybeGame = JSON.parse(item)
-        if (!maybeGame.players || !Array.isArray(maybeGame.players) || maybeGame.players.length < 1) {
+        if (!Array.isArray(maybeGame.players) || maybeGame.players.length < 1) {
             throw new Error()
         }
 
         for (const maybePlayer of maybeGame.players) {
-            if (!maybePlayer.name ||
-                typeof maybePlayer.name !== typeof '' ||
-                !maybePlayer.roundScores ||
+            if (typeof maybePlayer.name !== typeof '' ||
                 !Array.isArray(maybePlayer.roundScores) ||
                 maybePlayer.roundScores.length < 1
             ) {
