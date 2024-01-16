@@ -1,8 +1,10 @@
 /** @typedef {{ bodyRows: string[][], footerRow: string[], headerRow: string[] }} TableData */
 
-/** @typedef {{ name: string, roundScores: (number | undefined)[] }} PlayerData */
+/** @typedef {{ name: string, roundScores: RoundScoresData }} PlayerData */
 
-/** @typedef {{ players: PlayerData[] }} GameData */
+/** @typedef {Record<number, number>} RoundScoresData */
+
+/** @typedef {{ players: PlayerData[], roundCount: number }} GameData */
 
 const gameStorage = {
     /**
@@ -16,7 +18,7 @@ const gameStorage = {
         }
 
         const maybeGame = JSON.parse(item)
-        if (!maybeGame.players || !Array.isArray(maybeGame.players) || maybeGame.players.length < 1) {
+        if (!maybeGame.players || !Array.isArray(maybeGame.players) || maybeGame.players.length < 1 || typeof maybeGame.roundCount !== typeof 1) {
             throw new Error()
         }
 
@@ -24,22 +26,24 @@ const gameStorage = {
             if (!maybePlayer.name ||
                 typeof maybePlayer.name !== typeof '' ||
                 !maybePlayer.roundScores ||
-                !Array.isArray(maybePlayer.roundScores) ||
-                maybePlayer.roundScores.length < 1
+                typeof maybePlayer.roundScores !== typeof {}
             ) {
                 throw new Error()
             }
 
-            /** @type {(number | undefined)[]} */
+            /** @type {number[]} */
             const newRoundScores = []
-            for (let roundScore of maybePlayer.roundScores) {
-                if (roundScore !== null &&
-                    typeof roundScore !== typeof 1
-                ) {
+
+            const entries = Object.entries(maybePlayer.roundScores)
+
+            for (const [indexString, maybeScore] of entries) {
+                const maybeIndex = parseInt(indexString)
+                if (isNaN(maybeIndex) || isNaN(maybeScore)) {
                     throw new Error()
                 }
-                newRoundScores.push(roundScore != null ? roundScore : undefined)
+                newRoundScores[maybeIndex] = maybeScore
             }
+
             maybePlayer.roundScores = newRoundScores
         }
         return maybeGame
@@ -58,7 +62,7 @@ const gameStorage = {
  * @return {GameData}
  */
 const convertGameToGameData = (game) => {
-    return { players: game.players.map(({ name, roundScores }) => ({roundScores, name })) }
+    return { players: game.players.map(({ name, roundScores }) => ({roundScores: convertRoundScoresToRoundScoresData(roundScores), name })), roundCount: game.roundCount }
 }
 
 /**
@@ -66,21 +70,43 @@ const convertGameToGameData = (game) => {
  * @return {Game}
  */
 const convertGameDataToGame = (gameData) => {
-    const players = gameData.players.map(({name, roundScores}) => new Player(name, roundScores))
+    const players = gameData.players.map(({name, roundScores}) => new Player(name, convertRoundScoresDataToRoundScores(roundScores)))
     const playerCount = players.length
-    const roundCount = players[0].roundScores.length
+    const roundCount = gameData.roundCount
     return new Game(roundCount, playerCount, players)
 }
+
+/**
+ * @param {RoundScoresData} roundScoresData
+ */
+const convertRoundScoresDataToRoundScores = (roundScoresData) => Object.entries(roundScoresData).reduce((previous, current) => {
+    const [
+        indexString,
+        score
+    ] = current
+    const index = parseInt(indexString)
+    previous[index] = score
+    return previous
+}, [])
+
+/**
+ * @param {number[]} roundScores
+ * @return {RoundScoresData}
+ */
+const convertRoundScoresToRoundScoresData = (roundScores) => roundScores.reduce((previous, current, index) => {
+    previous[index] = current
+    return previous
+}, {})
 
 class Player {
     /** @type {string} */
     name
-    /** @type {(number | undefined)[]} */
+    /** @type {number[]} */
     roundScores
 
     /**
      * @param {string} name
-     * @param {(number | undefined)[]} roundScores
+     * @param {number[]} roundScores
      */
     constructor(name, roundScores = []) {
         this.name = name
@@ -88,7 +114,7 @@ class Player {
     }
 
     clearRoundScores() {
-        this.roundScores = this.roundScores.map(() => undefined)
+        this.roundScores = []
     }
 
     /**
@@ -169,11 +195,6 @@ class Game {
             if (!players[i]) {
                 players[i] = new Player(`player ${i + 1}`)
             }
-            for (let j = 0; j < roundCount; j++) {
-                if (!players[i].roundScores[j]) {
-                    players[i].roundScores[j] = undefined;
-                }
-            }
             if (roundCount < players[i].roundScores.length) {
                 players[i].roundScores.splice(roundCount - players[i].roundScores.length)
             }
@@ -195,9 +216,9 @@ const convertGameToTableData = (game) => {
 
     const headerRow = ['Player']
     const bodyRows = []
-    for (let i = 0; i < game.players.length; i++) {
+    for (let i = 0; i < game.playerCount; i++) {
         headerRow.push(game.players[i].name)
-        for (let j = 0; j < game.players[i].roundScores.length; j++) {
+        for (let j = 0; j < game.roundCount; j++) {
             if (!bodyRows[j]) {
                 bodyRows[j] = [`R ${j + 1}`]
             }
