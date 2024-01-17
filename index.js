@@ -264,11 +264,14 @@ const renderTableBodyWithBodyRowsData = (tableBodyElement, bodyRowsData) => {
                 cell.pattern = '[0-9]*'
                 cell.contentEditable = 'true'
                 cell.oninput = (e) => {
-                    let score = parseInt(e.target.innerText)
-                    if (isNaN(score)) {
-                        score = 0
+                    const score = parseInt(e.target.innerText)
+
+                    if (isNaN(score) || score === 0) {
+                        delete game.players[j - 1].roundScores[i]
+                    } else {
+                        game.players[j - 1].roundScores[i] = score
                     }
-                    game.players[j - 1].roundScores[i] = score
+
                     gameStorage.save(convertGameToGameData(game))
                     renderTableFooterWithFooterRowData(scoresTableFooter, convertGameToTableData(game).footerRow)
                 }
