@@ -273,6 +273,28 @@ const renderTableBodyWithBodyRowsData = (tableBodyElement, bodyRowsData) => {
                     renderTableFooterWithFooterRowData(scoresTableFooter, convertGameToTableData(game).footerRow)
                 }
                 cell.onkeydown = (e) => {
+                    if (
+                        e.shiftKey
+                        || e.ctrlKey
+                        || e.metaKey
+                        || e.altKey
+                        || e.key === 'Tab'
+                        || e.key === 'Insert'
+                        || e.key === 'Delete'
+                        || e.key === 'Home'
+                        || e.key === 'End'
+                        || e.key === 'PageUp'
+                        || e.key === 'PageDown'
+                        || e.key === 'Backspace'
+                        || e.key === 'ArrowLeft'
+                        || e.key === 'ArrowRight'
+                        || e.key === 'ArrowUp'
+                        || e.key === 'ArrowDown'
+                        || e.key === 'Control'
+                    ) {
+                        return
+                    }
+
                     if (!e.key.match(/^[0-9]/g)) {
                         e.preventDefault()
                     }
