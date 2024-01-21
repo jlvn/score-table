@@ -503,6 +503,14 @@ playerCountInput.value = game.playerCount
 
 const render = () => renderTableWithTableData(scoresTableHeader, scoresTableBody, scoresTableFooter, convertGameToTableData(game))
 
+/**
+ * @param {HTMLTableSectionElement} tableSectionElement
+ * @return {void}
+ */
+const focusFirstScoreCell = (tableSectionElement) => {
+    tableSectionElement?.rows[0]?.cells[1]?.focus()
+}
+
 roundCountInput.onchange = (e) => {
     game.roundCount = parseInt(e.target.value)
     gameStorage.save(convertGameToGameData(game))
@@ -521,4 +529,5 @@ clearScoresButton.onclick = () => {
     game.clearPlayerScores()
     gameStorage.save(convertGameToGameData(game))
     render()
+    focusFirstScoreCell(scoresTableBody)
 }
