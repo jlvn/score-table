@@ -372,7 +372,7 @@ const renderTableBodyWithBodyRowsData = (tableBodyElement, bodyRowsData) => {
 
             if (j > 0) {
                 cell.inputMode = 'numeric'
-                cell.pattern = '[0-9]*'
+                cell.pattern = '[0-9-]*'
                 cell.contentEditable = 'true'
                 cell.oninput = (e) => {
                     const score = parseInt(e.target.innerText)
@@ -414,7 +414,7 @@ const renderTableBodyWithBodyRowsData = (tableBodyElement, bodyRowsData) => {
                         return
                     }
 
-                    if (!e.key.match(/^[0-9]/g)) {
+                    if (!e.key.match(/^[0-9-]$/)) {
                         e.preventDefault()
                     }
                 }
