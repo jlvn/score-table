@@ -512,13 +512,25 @@ const focusFirstScoreCell = (tableSectionElement) => {
 }
 
 roundCountInput.onchange = (e) => {
-    game.roundCount = parseInt(e.target.value)
+    const maybeRoundCount = parseInt(e.target.value)
+
+    if (isNaN(maybeRoundCount) || maybeRoundCount === 0) {
+        return
+    }
+
+    game.roundCount = maybeRoundCount
     gameStorage.save(convertGameToGameData(game))
     render()
 }
 
 playerCountInput.onchange = (e) => {
-    game.playerCount = parseInt(e.target.value)
+    const maybePlayerCount = parseInt(e.target.value)
+
+    if (isNaN(maybePlayerCount) || maybePlayerCount === 0) {
+        return
+    }
+
+    game.playerCount = maybePlayerCount
     gameStorage.save(convertGameToGameData(game))
     render()
 }
