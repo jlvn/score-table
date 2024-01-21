@@ -82,6 +82,7 @@ td:first-child {
     background-color: #222222;
     position: sticky;
     left: 0;
+    z-index: 9;
 }
 
 button {
