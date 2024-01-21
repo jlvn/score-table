@@ -1,10 +1,44 @@
-/** @typedef {{ bodyRows: string[][], footerRow: string[], headerRow: string[] }} TableData */
+/** @typedef {{ value: string, belongsToHighest?: boolean, belongsToLowest?: boolean }} CellData */
+
+/** @typedef {{ bodyRows: CellData[][], footerRow: CellData[], headerRow: CellData[] }} TableData */
 
 /** @typedef {{ name: string, roundScores: RoundScoresData }} PlayerData */
 
 /** @typedef {Record<number, number>} RoundScoresData */
 
 /** @typedef {{ players: PlayerData[], roundCount: number }} GameData */
+
+/** @typedef {{ hasHighestTotalScore: boolean, hasLowestTotalScore: boolean }} HighestLowestTotalScoreCalculationResult */
+
+const numberArrayUtils = {
+    /**
+     * @param {number[]} values
+     * @param {number} initialExtremeValue
+     * @param {function(extremeValue: number, value: number): boolean} isExtremeValue
+     * @return {number[]}
+     */
+    itemIndexesWithExtremeValues: (values, initialExtremeValue,  isExtremeValue) => {
+        let currentExtremeValue = initialExtremeValue;
+        /**
+         * @type {number[]}
+         */
+        let indexesWithExtremeValue = []
+        for (let i = 0; i < values.length; i++) {
+            const value = values[i]
+
+            if (isExtremeValue(currentExtremeValue, value)) {
+                currentExtremeValue = value
+                indexesWithExtremeValue = []
+            }
+
+            if (currentExtremeValue === value) {
+                indexesWithExtremeValue.push(i)
+            }
+        }
+
+        return indexesWithExtremeValue
+    }
+}
 
 const gameStorage = {
     /**
@@ -118,10 +152,15 @@ class Player {
     }
 
     /**
-     * @return {number}
+     * @return {number|undefined}
      */
     get totalScore() {
-        return this.roundScores.reduce((previous, current) => previous + (current ?? 0), 0)
+        return this.roundScores.reduce(
+            (previous, current) =>
+                previous === undefined ?
+                    (current ?? 0) :
+                    previous + (current ?? 0), undefined
+        )
     }
 }
 
@@ -204,6 +243,55 @@ class Game {
         }
         return players
     }
+
+    /**
+     *
+     * @return {HighestLowestTotalScoreCalculationResult[]}
+     */
+    calculateHighestAndLowestPlayerTotalScores() {
+        const totalScores = this.#players.map(player => player.totalScore)
+
+        const totalScoresNotUndefinedCount = totalScores.reduce((previous, current) => {
+            if (current !== undefined) {
+                previous++
+            }
+
+            return previous
+        }, 0)
+
+        const lowestScoreIndexes = numberArrayUtils.itemIndexesWithExtremeValues(
+            totalScores,
+            Number.MAX_SAFE_INTEGER,
+            (lowestValue, value) => lowestValue > value
+        )
+        const highestScoreIndexes = numberArrayUtils.itemIndexesWithExtremeValues(
+            totalScores,
+            Number.MIN_SAFE_INTEGER,
+            (highestValue, value) => highestValue < value
+        )
+
+        /** @type {HighestLowestTotalScoreCalculationResult[]} */
+        const result = this.#players.map(() => ({ hasHighestTotalScore: false, hasLowestTotalScore: false }))
+
+        if (
+            highestScoreIndexes.length === this.#players.length
+            || lowestScoreIndexes.length === this.#players.length
+            || highestScoreIndexes.length === totalScoresNotUndefinedCount
+            || lowestScoreIndexes.length === totalScoresNotUndefinedCount
+        ) {
+            return result
+        }
+
+        for (const highestScoreIndex of highestScoreIndexes) {
+            result[highestScoreIndex].hasHighestTotalScore = true
+        }
+
+        for (const lowestScoreIndex of lowestScoreIndexes) {
+            result[lowestScoreIndex].hasLowestTotalScore = true
+        }
+
+        return result
+    }
 }
 
 /**
@@ -211,18 +299,34 @@ class Game {
  * @return {TableData}
  */
 const convertGameToTableData = (game) => {
-    const footerRow = ['Total']
-    footerRow.push(...game.players.map(player => player.totalScore.toString()))
+    const result = game.calculateHighestAndLowestPlayerTotalScores()
 
-    const headerRow = ['Player']
+    /** @type {CellData[]} */
+    const footerRow = [{ value: 'Total', belongsToHighest: false, belongsToLowest: false}]
+    footerRow.push(...game.players.map((player, index) => ({
+        value: player.totalScore?.toString(),
+        belongsToLowest: result[index].hasLowestTotalScore,
+        belongsToHighest: result[index].hasHighestTotalScore
+    })))
+
+    /** @type {CellData[]} */
+    const headerRow = [{value: 'Player', belongsToHighest: false, belongsToLowest: false}]
+
+    /** @type {CellData[][]} */
     const bodyRows = []
     for (let i = 0; i < game.playerCount; i++) {
-        headerRow.push(game.players[i].name)
+        headerRow.push({
+            value: game.players[i].name,
+            belongsToLowest: result[i].hasLowestTotalScore,
+            belongsToHighest: result[i].hasHighestTotalScore
+        })
         for (let j = 0; j < game.roundCount; j++) {
             if (!bodyRows[j]) {
-                bodyRows[j] = [`R ${j + 1}`]
+                bodyRows[j] = [{value: `R ${j + 1}`, belongsToHighest: false, belongsToLowest: false}]
             }
-            bodyRows[j][i + 1] = game.players[i].roundScores[j] === undefined ? '' : game.players[i].roundScores[j].toString()
+            bodyRows[j][i + 1] = {
+                value: game.players[i].roundScores[j] === undefined ? '' : game.players[i].roundScores[j].toString()
+            }
         }
     }
 
@@ -234,7 +338,7 @@ const convertGameToTableData = (game) => {
 }
 
 /**
- * @param {string[]} footerRowData
+ * @param {CellData[]} footerRowData
  * @param {HTMLTableSectionElement} tableFooterElement
  */
 const renderTableFooterWithFooterRowData = (tableFooterElement, footerRowData) => {
@@ -243,12 +347,18 @@ const renderTableFooterWithFooterRowData = (tableFooterElement, footerRowData) =
     const totalsRow = tableFooterElement.insertRow()
     for (let i = 0; i < footerRowData.length; i++) {
         const cell = totalsRow.insertCell(i)
-        cell.innerText = footerRowData[i]
+        cell.innerHTML = footerRowData[i].value ?? '<i>empty</i>'
+        if (footerRowData[i].belongsToHighest) {
+            cell.classList.add('highest')
+        }
+        if (footerRowData[i].belongsToLowest) {
+            cell.classList.add('lowest')
+        }
     }
 }
 
 /**
- * @param {string[][]} bodyRowsData
+ * @param {CellData[][]} bodyRowsData
  * @param {HTMLTableSectionElement} tableBodyElement
  */
 const renderTableBodyWithBodyRowsData = (tableBodyElement, bodyRowsData) => {
@@ -258,7 +368,8 @@ const renderTableBodyWithBodyRowsData = (tableBodyElement, bodyRowsData) => {
         const row = tableBodyElement.insertRow(i)
         for (let j = 0; j < bodyRowsData[i].length; j++) {
             const cell = row.insertCell(j)
-            cell.innerText = bodyRowsData[i][j]
+            cell.innerText = bodyRowsData[i][j].value
+
             if (j > 0) {
                 cell.inputMode = 'numeric'
                 cell.pattern = '[0-9]*'
@@ -266,14 +377,19 @@ const renderTableBodyWithBodyRowsData = (tableBodyElement, bodyRowsData) => {
                 cell.oninput = (e) => {
                     const score = parseInt(e.target.innerText)
 
-                    if (isNaN(score) || score === 0) {
+                    if (isNaN(score)) {
                         delete game.players[j - 1].roundScores[i]
                     } else {
                         game.players[j - 1].roundScores[i] = score
                     }
 
                     gameStorage.save(convertGameToGameData(game))
-                    renderTableFooterWithFooterRowData(scoresTableFooter, convertGameToTableData(game).footerRow)
+                    const {
+                        headerRow,
+                        footerRow
+                    } = convertGameToTableData(game)
+                    renderTableHeaderWithHeaderRowData(scoresTableHeader, headerRow)
+                    renderTableFooterWithFooterRowData(scoresTableFooter, footerRow)
                 }
                 cell.onkeydown = (e) => {
                     if (
@@ -309,7 +425,7 @@ const renderTableBodyWithBodyRowsData = (tableBodyElement, bodyRowsData) => {
 
 /**
  * @param {HTMLTableSectionElement} tableHeaderElement
- * @param {string[]} headerRowData
+ * @param {CellData[]} headerRowData
  */
 const renderTableHeaderWithHeaderRowData = (tableHeaderElement, headerRowData) => {
     tableHeaderElement.innerHTML = ''
@@ -317,7 +433,16 @@ const renderTableHeaderWithHeaderRowData = (tableHeaderElement, headerRowData) =
     const headerRow = tableHeaderElement.insertRow()
     for (let i = 0; i < headerRowData.length; i++) {
         const cell = headerRow.insertCell(i)
-        cell.innerText = headerRowData[i]
+        cell.innerText = headerRowData[i].value
+
+        if (headerRowData[i].belongsToHighest) {
+            cell.classList.add('highest')
+        }
+
+        if (headerRowData[i].belongsToLowest) {
+            cell.classList.add('lowest')
+        }
+
         if (i > 0) {
             cell.inputMode = 'email'
             cell.pattern = '\w'

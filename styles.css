@@ -2,6 +2,10 @@
     box-sizing: border-box;
 }
 
+i {
+    opacity: .4;
+}
+
 html,
 body {
     height: 100vh;
@@ -84,4 +88,14 @@ button {
     background-color: #2e2e2e;
     border-color: #454545;
     color: #cccccc;
+}
+
+td.highest {
+    background-color: #ff00ff15;
+    border-color: #ff00ff15;
+}
+
+td.lowest {
+    background-color: #00ffff15;
+    border-color: #00ffff15;
 }
