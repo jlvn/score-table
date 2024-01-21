@@ -92,11 +92,11 @@ button {
 }
 
 td.highest {
-    background-color: #ff00ff15;
-    border-color: #ff00ff15;
+    background-color: #ff00ff30;
+    border-color: #ff00ff30;
 }
 
 td.lowest {
-    background-color: #00ffff15;
-    border-color: #00ffff15;
+    background-color: #00ffff30;
+    border-color: #00ffff30;
 }

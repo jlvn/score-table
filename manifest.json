@@ -1,0 +1,11 @@
+{
+  "name": "Rackup",
+  "short_name": "Rackup",
+  "icons": [{
+    "src": "google-touch-icon.png",
+    "sizes": "512x512"
+  }],
+  "background_color": "#282828",
+  "theme_color": "#00ffff",
+  "display": "fullscreen"
+}
